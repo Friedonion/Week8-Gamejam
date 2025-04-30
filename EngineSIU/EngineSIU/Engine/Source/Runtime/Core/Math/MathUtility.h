@@ -262,4 +262,55 @@ struct FMath
             InterpEaseIn(0.f, 1.f, Alpha * 2.f, Exp) * 0.5f :
             InterpEaseOut(0.f, 1.f, Alpha * 2.f - 1.f, Exp) * 0.5f + 0.5f);
     }
+    template<typename T>
+    [[nodiscard]] static constexpr T SmoothStep(T A, T B, T X)
+    {
+        if (X < A)
+        {
+            return 0;
+        }
+        else if (X >= B)
+        {
+            return 1;
+        }
+        const T InterpFraction = (X - A) / (B - A);
+        return InterpFraction * InterpFraction * (3.0f - 2.0f * InterpFraction);
+    }
+
+    template< class T >
+    [[nodiscard]] static constexpr FORCEINLINE T LerpStable(const T& A, const T& B, double Alpha)
+    {
+        return (T)((A * (1.0 - Alpha)) + (B * Alpha));
+    }
+
+    /** Performs a linear interpolation between two values, Alpha ranges from 0-1. Handles full numeric range of T */
+    template< class T >
+    [[nodiscard]] static constexpr FORCEINLINE T LerpStable(const T& A, const T& B, float Alpha)
+    {
+        return (T)((A * (1.0f - Alpha)) + (B * Alpha));
+    }
+
+    inline FVector VInterpTo(const FVector& Current, const FVector& Target, float DeltaTime, float InterpSpeed)
+    {
+        if (InterpSpeed <= 0.0f) return Target;
+        FVector Delta = Target - Current;
+        float Dist = Delta.Length();
+        if (Dist < 1e-6f) return Target;
+        float Step = 1.f - std::exp(-InterpSpeed * DeltaTime);
+        return Current + Delta * Step;
+    }
+
+    // 일정 속도 보간 (FMath::VInterpToConstantTo 유사)
+    inline FVector VInterpToConstant(const FVector& Current, const FVector& Target, float DeltaTime, float InterpSpeed)
+    {
+        FVector Delta = Target - Current;
+        float Dist = Delta.Length();
+        if (Dist < 1e-6f || InterpSpeed <= 0.0f) return Target;
+        float MaxStep = InterpSpeed * DeltaTime;
+        if (Dist <= MaxStep) {
+            return Target;
+        }
+        FVector Dir = Delta * (1.0f / Dist);
+        return Current + Dir * MaxStep;
+    }
 };
